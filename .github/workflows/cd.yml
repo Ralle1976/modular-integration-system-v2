@@ -1,0 +1,31 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
+    branches: [main]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+    
+    - name: Update deployment
+      run: |
+        kubectl set image deployment/integration-system \
+          app=${{ secrets.DOCKER_REGISTRY }}/integration-system:${{ github.sha }} \
+          -n integration-system
+        
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/integration-system \
+          -n integration-system --timeout=300s
