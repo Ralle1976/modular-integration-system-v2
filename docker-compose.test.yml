@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+    env_file: .env.test
+    depends_on:
+      mysql_test:
+        condition: service_healthy
+
+  mysql_test:
+    image: mysql:8.0
+    env_file: .env.test
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+      - ./docker/mysql/init-test.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_test_data:

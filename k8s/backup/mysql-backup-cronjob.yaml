@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: integration-system
+spec:
+  schedule: "0 1 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: mysql:8.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              mysqldump -h mysql-service -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE | 
+              gzip > /backup/backup-$(date +%Y%m%d).sql.gz
+            env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: password
+            - name: MYSQL_DATABASE
+              value: integration_system
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-storage
+          restartPolicy: OnFailure
