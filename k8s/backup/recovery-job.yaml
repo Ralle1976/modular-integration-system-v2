@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-recovery
+  namespace: integration-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: recovery
+        image: mysql:8.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          gunzip < /backup/backup-$BACKUP_DATE.sql.gz | 
+          mysql -h mysql-service -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE
+        env:
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: username
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: password
+        - name: MYSQL_DATABASE
+          value: integration_system
+        - name: BACKUP_DATE
+          value: "YYYYMMDD"
+        volumeMounts:
+        - name: backup-storage
+          mountPath: /backup
+      volumes:
+      - name: backup-storage
+        persistentVolumeClaim:
+          claimName: backup-storage
+      restartPolicy: Never
