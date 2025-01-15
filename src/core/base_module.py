@@ -3,29 +3,31 @@ import logging
 from typing import Any, Dict
 
 class BaseModule(ABC):
+    """Base class for all system modules."""
+    
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
         
     @abstractmethod
     async def initialize(self) -> None:
-        """Initialize the module."""
+        """Initialize module resources."""
         pass
         
     @abstractmethod
     async def cleanup(self) -> None:
-        """Cleanup resources."""
+        """Cleanup module resources."""
         pass
         
     @abstractmethod
     async def health_check(self) -> bool:
-        """Check if the module is healthy."""
+        """Check module health status."""
         pass
 
     def log_error(self, message: str, error: Exception) -> None:
-        """Log error messages."""
+        """Log error with details."""
         self.logger.error(f"{message}: {str(error)}")
         
     def log_info(self, message: str) -> None:
-        """Log info messages."""
+        """Log info message."""
         self.logger.info(message)
